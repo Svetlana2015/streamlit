@@ -27,7 +27,7 @@ df = pd.read_csv("train.csv")
 clf = joblib.load('mrf.joblib')
 enc = joblib.load('encoder_2.joblib')
 scaler = joblib.load('mmsc_3.joblib')
-features = joblib.load('features.joblib')
+#features = joblib.load('features.joblib')
 
 #Former la barre latérale
 st.sidebar.header("Données personnelles de l'utilisateur")
