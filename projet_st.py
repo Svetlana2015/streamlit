@@ -1,4 +1,9 @@
 import streamlit as st
+import requests
+from requests.exceptions import HTTPError
+import json
+
+url = "https://mysterious-island-01163.herokuapp.com/predict"
 
 st.set_page_config(
     page_title="Prêt à dépenser - Un algorithme de classification",
@@ -176,12 +181,16 @@ def user_input_features():
 data_in = user_input_features()
 st.write(data_in)
 
+if st.button('Predict'):
 
-
-
-
-
-
-
-
-
+    try:
+        response = requests.post(url = url, data = json.dumps(data_in))
+        st.text(f"API status code: {response.status_code}")
+        response.raise_for_status()
+    except HTTPError as http_err:
+        st.text(f"HTTP error occurred: {http_err}")
+        st.text(f"{response.text}")
+    except Exception as err:
+        st.text(f"error occurred: {err}")
+    else:
+        st.text(f"API answered: {response.json()}")
