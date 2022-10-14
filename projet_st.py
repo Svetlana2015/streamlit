@@ -1,14 +1,9 @@
 import streamlit as st
+import requests
+from requests.exceptions import HTTPError
+import json
 
-import joblib
-
-import pandas as pd
-import numpy as np
-
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import MinMaxScaler
-
+url = "https://mysterious-island-01163.herokuapp.com/predict"
 
 st.set_page_config(
     page_title="Prêt à dépenser - Un algorithme de classification",
@@ -19,15 +14,6 @@ st.set_page_config(
 st.header("""
 Cette app calculer la probabilité qu’un client rembourse son crédit.
 """)
-
-#Nous chargeons le fichier "train.csv" dans un Dataframe appelé df
-df = pd.read_csv("train.csv")
-
-# Initialize files
-clf = joblib.load('mrf.joblib')
-enc = joblib.load('encoder_2.joblib')
-scaler = joblib.load('mmsc_3.joblib')
-#features = joblib.load('features.joblib')
 
 #Former la barre latérale
 st.sidebar.header("Données personnelles de l'utilisateur")
@@ -128,7 +114,7 @@ def user_input_features():
     EXT_SOURCE_3 = st.number_input("Score normalisé à partir d'une source de données externe (3)", 0.0, 1.0)
 
 
-    data = {'CODE_GENDER': CODE_GENDER,
+    return {'CODE_GENDER': CODE_GENDER,
             'DAYS_BIRTH': DAYS_BIRTH,
             'NAME_FAMILY_STATUS': NAME_FAMILY_STATUS,
             'CNT_CHILDREN': CNT_CHILDREN,
@@ -192,60 +178,19 @@ def user_input_features():
             
                 }
 
-    
-
-    features = pd.DataFrame(data, index=[0])
-    return features
-
 data_in = user_input_features()
 st.write(data_in)
 
+if st.button('Predict'):
 
-# Apply one-hot encoding
-categorical = data_in.select_dtypes(include = ['object'])
-column_names = enc.get_feature_names_out(['CODE_GENDER', 'NAME_FAMILY_STATUS', 'NAME_TYPE_SUITE', 'NAME_HOUSING_TYPE',
-                  'FLAG_OWN_REALTY', 'FLAG_OWN_CAR','NAME_EDUCATION_TYPE',  'OCCUPATION_TYPE',
-                 'NAME_INCOME_TYPE', 'NAME_CONTRACT_TYPE', 'WEEKDAY_APPR_PROCESS_START'])
-array = enc.transform(categorical).toarray()
-encoded_features = pd.DataFrame(array,index = categorical.index, columns=column_names)
-data_in = data_in.drop(['CODE_GENDER', 'NAME_FAMILY_STATUS', 'NAME_TYPE_SUITE', 'NAME_HOUSING_TYPE',
-                  'FLAG_OWN_REALTY', 'FLAG_OWN_CAR','NAME_EDUCATION_TYPE',  'OCCUPATION_TYPE',
-                 'NAME_INCOME_TYPE', 'NAME_CONTRACT_TYPE', 'WEEKDAY_APPR_PROCESS_START'], axis = 1)
-data_in = pd.concat([data_in, encoded_features], axis=1)
-    
-
-# Apply MinMaScaler
-data_in[data_in.columns] = pd.DataFrame(scaler.transform(data_in), index= data_in.index)
-   
-
-data_out = data_in
-
-st.write(data_out)
-
-#Prediction
-
-prediction = clf.predict(data_out)
-prediction = prediction.tolist()
-prediction = prediction[0]
-probability = clf.predict_proba(data_in)
-
-
-#st.subheader('Class labels and their corresponding index number')
-#st.write(train_new.target_names)
-
-st.subheader('Prediction')
-st.write(prediction)
-
-
-st.subheader('Probability')
-st.write(probability)
-
-
-
-
-
-
-
-
-
-
+    try:
+        response = requests.post(url = url, data = json.dumps(data_in))
+        st.text(f"API status code: {response.status_code}")
+        response.raise_for_status()
+    except HTTPError as http_err:
+        st.text(f"HTTP error occurred: {http_err}")
+        st.text(f"{response.text}")
+    except Exception as err:
+        st.text(f"error occurred: {err}")
+    else:
+        st.text(f"API answered: {response.json()}")
